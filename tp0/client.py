@@ -2,6 +2,8 @@ import socket
 import sys
 import struct
 
+# Por meio do map, aplica a função de transformação a todos os elementos da 
+# string, gerando uma nova string codificada pela cifra de César.
 def caesarCipher(string, shift):
     return ''.join(map(lambda x:chr(((ord(x)+shift-97)%26)+97),string))
 
@@ -17,8 +19,10 @@ def main():
 
     # Cria o socket TCP
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Seta o tempo de timeout
     tcp.settimeout(15.0)
     dest = (HOST, int(PORT))
+    # Estabelece conexão
     tcp.connect(dest)
 
     # Envia o tamanho da string

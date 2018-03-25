@@ -2,6 +2,8 @@ import socket
 import sys
 import _thread
 
+# Por meio do map, aplica a função de transformação a todos os elementos da
+# string, gerando uma nova string decifrada.
 def decipher(string, cipher):
     return ''.join(map(lambda x:chr(((ord(x)-cipher-97)%26)+97),string))
 
@@ -41,8 +43,10 @@ def main():
     tcp.bind(orig)
     tcp.listen(10)
 
+    # Aguarda conexões
     while True:
         con, client = tcp.accept()
+        # Inicia uma nova thread para atender a requisição
         try:
            _thread.start_new_thread(handleRequest, (con, ) )
         except:

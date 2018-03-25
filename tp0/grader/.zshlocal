@@ -1,0 +1,9 @@
+cp ../target/release/server .
+dir
+vim grade.sh
+dir
+cat tests.txt
+cat tests.txt | cut -d " " -f 1 > results.txt
+./grade.sh
+dir
+cd ../
