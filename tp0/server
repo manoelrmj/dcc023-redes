@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import socket
 import sys
 import _thread
@@ -8,6 +10,7 @@ def decipher(string, cipher):
     return ''.join(map(lambda x:chr(((ord(x)-cipher-97)%26)+97),string))
 
 def handleRequest(con):
+    # Seta o tempo de timeout
     con.settimeout(15.0)
     # Recebe inteiro de 4 bytes (tamanho da string)
     msg = con.recv(4)
@@ -19,11 +22,13 @@ def handleRequest(con):
 
     # Recebe a chave
     msg = con.recv(4)
+    print (msg)
     key = int.from_bytes(msg, byteorder='big')
 
     # Decifra
     decipheredString = decipher(string, key)
     print(decipheredString)
+    sys.stdout.flush()
 
     # Envia mensagem decifrada
     con.send (decipheredString.encode())
@@ -41,7 +46,7 @@ def main():
     tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     orig = (HOST, PORT)
     tcp.bind(orig)
-    tcp.listen(10)
+    tcp.listen(10) # Max 10 conexões (valor arbitrário)
 
     # Aguarda conexões
     while True:
