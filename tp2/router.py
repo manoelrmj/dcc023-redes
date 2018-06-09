@@ -7,6 +7,7 @@ import argparse
 import threading
 import time
 import json
+import math
 
 class Router(object):
 
@@ -23,10 +24,11 @@ class Router(object):
     sock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM, 0) # UDP
 
-    def __init__(self, addr, period):
+    def __init__(self, addr, period, startup):
         super(Router, self).__init__()
         self.addr = addr
         self.period = period
+        self.startup = startup
 
     def start(self):
         # Start router threads
@@ -54,28 +56,45 @@ class Router(object):
 
     def addLink(self, destinationAddr, weight):
         self.links[destinationAddr] = weight
+        self.routingTable[destinationAddr] = (int(weight), destinationAddr)
 
     def removeLink(self, destinationAddr):
         del self.links[destinationAddr]
+        # Verifica se o link removido era o de menor custo
+        if self.routingTable.get(destinationAddr)[1] == destinationAddr:
+            del self.routingTable[destinationAddr]
+
+    def _processInput(self, inputString):
+        inputParts = inputString.split(' ')
+        if(inputParts[0] == "add"):
+            self.addLink(inputParts[1], inputParts[2])
+            #print(self.links)
+
+        elif(inputParts[0] == "del"):
+            self.removeLink(inputParts[1])
+            #print(self.links)
+        elif(inputParts[0] == "trace"):
+            print("TRACE")
+        else:
+            if(inputParts[0] != "quit"):
+                print("Invalid command. Please, try again.")
+        #print(inputParts)
 
     def _cliThread(self):
         # Command Line Interface
+
+        # Le arquivo se especificado
+        if(self.startup != None):
+            file = open(self.startup, 'r')
+            for line in file:
+                print("> ", line)
+                self._processInput(line)
+
         inputString = ""
         while(inputString != "quit"):
             inputString = input('> ')
-            inputParts = inputString.split(' ')
+            self._processInput(inputString)
             
-            if(inputParts[0] == "add"):
-                self.addLink(inputParts[1], inputParts[2])
-                #print(self.links)
-
-            elif(inputParts[0] == "del"):
-                self.removeLink(inputParts[1])
-                #print(self.links)
-            else:
-                if(inputParts[0] != "quit"):
-                    print("Invalid command. Please, try again.")
-            #print(inputParts)
 
         self.running = False
 
@@ -95,23 +114,42 @@ class Router(object):
             elif(json_data['type'] == 'update'):
                 #print(json_data)
                 print("Update from ", source_addr)
+                # for key,value in json_data['distances'].items():
+                #     print (key,value)
+                # Atualizar tabela de roteamento
                 for key,value in json_data['distances'].items():
-                    print (key,value)
-                print(json_data)
+                    if(key in self.routingTable):
+                        if(value + int(self.links[source_addr[0]]) < self.routingTable[key][0]):
+                            self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])                            
+                    else: 
+                        self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])
+                print("routingTable:")
+                print(self.routingTable)
+
+            elif(json_data['type'] == 'trace'):
+                print("Trace")
 
     def _updThread(self):
         UDP_MESSAGE = {}
         UDP_MESSAGE['type'] = 'update'
         UDP_MESSAGE['source'] = self.addr
+
         
-        while(self.running):
+        while(self.running):            
             
+            # for neighbour in self.links.keys():
+            #     UDP_MESSAGE['distances'] = {}
+            #     UDP_MESSAGE['destination'] = neighbour
+            #     for key, value in self.links.items():
+            #         if(key != neighbour):
+            #             UDP_MESSAGE['distances'][key] = value
+
             for neighbour in self.links.keys():
                 UDP_MESSAGE['distances'] = {}
                 UDP_MESSAGE['destination'] = neighbour
-                for key, value in self.links.items():
-                    if(key != neighbour):
-                        UDP_MESSAGE['distances'][key] = value
+                for key, value in self.routingTable.items():
+                    if(key != neighbour): # Split horizon
+                        UDP_MESSAGE['distances'][key] = value[0]
             
                 self.sock.sendto(json.dumps(UDP_MESSAGE).encode(), (neighbour, self.UDP_PORT))
 
@@ -127,7 +165,7 @@ def main():
 
     args = parser.parse_args()
 
-    router = Router(args.addr, args.update_period)
+    router = Router(args.addr, args.update_period, args.startup)
     router.start()
 
     #print(args)    
