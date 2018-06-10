@@ -135,7 +135,7 @@ class Router(object):
                 #print(self.routingTable)
             elif(json_data['type'] == 'data'):
                 if(json_data['destination'] == self.addr): # Pacote chegou ao destino
-                    print("Received message from ", json_data['source'])
+                    print("# Mensagem recebida por ", json_data['source'])
                     print(json_data['payload'])
                 else: # Encaminha
                     ## TODO: balanceamento de carga ##
@@ -144,7 +144,16 @@ class Router(object):
                     self.sock.sendto(json.dumps(json_data).encode(), (nextHop, self.UDP_PORT))
             elif(json_data['type'] == 'trace'):
                 if(json_data['destination'] == self.addr): # Trace chegou ao destino
+                    print("Received trace")
                     print(json_data)
+                    # Envia o pacote de trace de volta para o solicitante 
+                    UDP_MESSAGE = {}
+                    UDP_MESSAGE['type'] = 'data'
+                    UDP_MESSAGE['source'] = self.addr
+                    UDP_MESSAGE['destination'] = json_data['source']
+                    UDP_MESSAGE['payload'] = json_data
+                    nextHop = self.routingTable[json_data['source']][1]
+                    self.sock.sendto(json.dumps(UDP_MESSAGE).encode(), (nextHop, self.UDP_PORT))
                 else: # Ecaminha trace
                     nextHop = self.routingTable[json_data['destination']][1]
                     print("Fowrading trace to ", json_data['destination'])
