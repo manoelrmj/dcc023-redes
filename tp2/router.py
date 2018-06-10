@@ -74,11 +74,21 @@ class Router(object):
             self.removeLink(inputParts[1])
             #print(self.links)
         elif(inputParts[0] == "trace"):
-            print("TRACE")
+            self._sendTrace(inputParts[1])
         else:
             if(inputParts[0] != "quit"):
                 print("Invalid command. Please, try again.")
         #print(inputParts)
+
+    def _sendTrace(self, destination):
+        UDP_MESSAGE = {}
+        UDP_MESSAGE['type'] = 'trace'
+        UDP_MESSAGE['source'] = self.addr
+        UDP_MESSAGE['destination'] = destination
+        UDP_MESSAGE['hops'] = []
+        UDP_MESSAGE['hops'].append(self.addr)
+        nextHop = self.routingTable[destination][1]
+        self.sock.sendto(json.dumps(UDP_MESSAGE).encode(), (nextHop, self.UDP_PORT))
 
     def _cliThread(self):
         # Command Line Interface
@@ -109,11 +119,9 @@ class Router(object):
             data, source_addr = self.sock.recvfrom(1024) # buffer size is 1024 bytes
             json_data = json.loads(data.decode())
             #print(json_data['type'])
-            if(json_data['type'] == 'data'):
-                print(json_data['payload'])
-            elif(json_data['type'] == 'update'):
+            if(json_data['type'] == 'update'):
                 #print(json_data)
-                print("Update from ", source_addr)
+                #print("Update from ", source_addr)
                 # for key,value in json_data['distances'].items():
                 #     print (key,value)
                 # Atualizar tabela de roteamento
@@ -123,11 +131,26 @@ class Router(object):
                             self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])                            
                     else: 
                         self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])
-                print("routingTable:")
-                print(self.routingTable)
-
+                #print("routingTable:")
+                #print(self.routingTable)
+            elif(json_data['type'] == 'data'):
+                if(json_data['destination'] == self.addr): # Pacote chegou ao destino
+                    print("Received message from ", json_data['source'])
+                    print(json_data['payload'])
+                else: # Encaminha
+                    ## TODO: balanceamento de carga ##
+                    nextHop = self.routingTable[json_data['destination']][1]
+                    print("Fowrading message from ", source_addr[0], " to ", nextHop)
+                    self.sock.sendto(json.dumps(json_data).encode(), (nextHop, self.UDP_PORT))
             elif(json_data['type'] == 'trace'):
-                print("Trace")
+                if(json_data['destination'] == self.addr): # Trace chegou ao destino
+                    print(json_data)
+                else: # Ecaminha trace
+                    nextHop = self.routingTable[json_data['destination']][1]
+                    print("Fowrading trace to ", json_data['destination'])
+                    json_data['hops'].append(self.addr)
+                    self.sock.sendto(json.dumps(json_data).encode(), (nextHop, self.UDP_PORT))
+
 
     def _updThread(self):
         UDP_MESSAGE = {}
