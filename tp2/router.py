@@ -121,18 +121,21 @@ class Router(object):
             #print(json_data['type'])
             if(json_data['type'] == 'update'):
                 #print(json_data)
-                #print("Update from ", source_addr)
+                print("Update from ", source_addr)
                 # for key,value in json_data['distances'].items():
                 #     print (key,value)
                 # Atualizar tabela de roteamento
                 for key,value in json_data['distances'].items():
                     if(key in self.routingTable):
                         if(value + int(self.links[source_addr[0]]) < self.routingTable[key][0]):
-                            self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])                            
+                            self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])
+                        elif(value + int(self.links[source_addr[0]]) == self.routingTable[key][0]):
+                            if(source_addr[0] not in self.routingTable[key]):
+                                self.routingTable[key] += (source_addr[0],)
                     else: 
                         self.routingTable[key] = (int(value) + int(self.links[source_addr[0]]), source_addr[0])
-                #print("routingTable:")
-                #print(self.routingTable)
+                print("routingTable:")
+                print(self.routingTable)
             elif(json_data['type'] == 'data'):
                 if(json_data['destination'] == self.addr): # Pacote chegou ao destino
                     print("# Mensagem recebida por ", json_data['source'])
