@@ -55,7 +55,6 @@ class Client():
                         continue
 
             except KeyboardInterrupt:
-                print ("...")
                 self.socket.close()
                 break                            
     

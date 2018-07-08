@@ -28,7 +28,7 @@ def main():
                 subscriptions[source_addr[0] + ":" + str(source_addr[1])] = {}
                 subscriptions[source_addr[0] + ":" + str(source_addr[1])]['tags'] = []
                 subscriptions[source_addr[0] + ":" + str(source_addr[1])]['tags'].append(message['tag'])
-                sock.sendto(("Subscripted na tag #" + message['tag']).encode(), (source_addr[0], source_addr[1]))
+                sock.sendto(("Subscripted to tag #" + message['tag']).encode(), (source_addr[0], source_addr[1]))
 
         elif(messageType == "unsubscribe"):
             if(message['tag'] in subscriptions[source_addr[0] + ":" + str(source_addr[1])]['tags']):
